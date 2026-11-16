@@ -12,19 +12,21 @@ std::vector<std::string> Buzzer::Messages() const
 void Buzzer::Connect(CoffeeBar& bar)
 {
     // TODO: Part B, demo
-    throw NotFinished();
+    ticket = bar.OrderReady.subscribe(
+        [this](auto sender, const auto& e) { OnOrderReady(sender, e); });
 }
 
 // Unsubscribe with the same ticket that subscribed.
 void Buzzer::Disconnect(CoffeeBar& bar)
 {
     // TODO: Part B, demo
-    throw NotFinished();
+    bar.OrderReady.unsubscribe(ticket);
 }
 
 // Runs every time the bar raises OrderReady, until Disconnect.
 void Buzzer::OnOrderReady(const void* sender, const OrderEventArgs& e)
 {
     // TODO: Part B, demo
-    throw NotFinished();
+    messages.push_back("Buzz: " + e.GetOrder().GetCustomer() + ", your " +
+                       e.GetOrder().GetDrink() + " is ready.");
 }
