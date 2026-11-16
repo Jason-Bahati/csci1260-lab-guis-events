@@ -1,0 +1,76 @@
+# Build and Check Output
+#
+# GitHub runs this file every time you push. It downloads your repository
+# onto a fresh Linux machine, builds your project, runs it, and compares
+# what your program printed to the expected output for this assignment.
+#
+# You do not need to change anything in this file. The expected output
+# lives next door in .github/expected_output.txt.
+#
+# A green check on the repository page means your program built and its
+# output matched. A red X means something did not. Click the X to read why.
+
+name: Build and Check Output
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Build, run, and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download this repository onto the runner
+        uses: actions/checkout@v7
+
+      - name: Install Qt 6 and CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-base-dev cmake g++
+
+      - name: Find the CMake project
+        id: project
+        run: |
+          LISTS=$(find . -name CMakeLists.txt -not -path '*/build/*' -not -path './.git/*' | sort | head -n 1)
+          if [ -z "$LISTS" ]; then
+            echo "::error::No CMakeLists.txt was found. Make sure the project files are committed and pushed."
+            exit 1
+          fi
+          echo "Using $LISTS"
+          echo "dir=$(dirname "$LISTS")" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: |
+          cmake -S "${{ steps.project.outputs.dir }}" -B ci-build
+          cmake --build ci-build
+
+      - name: Run the program and save what it printed
+        run: |
+          set +e
+          ./ci-build/gui_events_lab < /dev/null > actual_output.txt 2> errors.txt
+          EXIT_CODE=$?
+          set -e
+          echo "----- What your program printed -----"
+          cat actual_output.txt
+          echo "-------------------------------------"
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::warning::Your program stopped with exit code $EXIT_CODE. The message below says why."
+            cat errors.txt
+          fi
+
+      - name: Compare with the expected output
+        run: |
+          sed -i '1s/^\xEF\xBB\xBF//' .github/expected_output.txt
+          if diff --strip-trailing-cr .github/expected_output.txt actual_output.txt > differences.txt; then
+            echo "Your output matches the expected output exactly."
+          else
+            echo "::error::The output does not match. Lines starting with < are expected. Lines starting with > are what your program printed."
+            cat differences.txt
+            exit 1
+          fi
