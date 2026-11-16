@@ -11,7 +11,7 @@ OrderEventArgs::OrderEventArgs(const Order& order)
     : order(order)
 {
     // TODO: Part A, demo. Delete this throw when the demo reaches it.
-    throw NotFinished();
+
 }
 
 // Given. The order this event is about.

@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "Event.h"
 #include "NotFinished.h"
 
 // Given. How many orders are in line right now.
@@ -17,8 +18,7 @@ std::vector<Order> CoffeeBar::Waiting() const
 {
     std::vector<Order> orders;
     std::queue<Order> line = waiting;
-    while (!line.empty())
-    {
+    while (!line.empty()) {
         orders.push_back(line.front());
         line.pop();
     }
@@ -29,7 +29,12 @@ std::vector<Order> CoffeeBar::Waiting() const
 Order CoffeeBar::Place(const std::string& customer, const std::string& drink)
 {
     // TODO: Part A, demo
-    throw NotFinished();
+
+    Order order = Order(nextNumber, customer, drink);
+    nextNumber++;
+    waiting.push(order);
+    OrderPlaced.invoke(this, OrderEventArgs(order));
+    return order;
 }
 
 // Take the oldest order out of line, then announce it. Return the order.
@@ -38,5 +43,15 @@ Order CoffeeBar::FinishNext()
 {
     // TODO: Part A, demo. Then Exercise 1: announce AllCaughtUp when
     // the order you just finished was the last one in line.
-    throw NotFinished();
+
+    if (waiting.empty()) {
+        throw std::runtime_error("No orders are waiting");
+    }
+    Order order = waiting.front();
+    waiting.pop();
+    OrderReady.invoke(this, OrderEventArgs(order));
+    if (waiting.empty()) {
+        AllCaughtUp.invoke(this, EmptyArgs());
+    }
+    return order;
 }
